@@ -1,0 +1,7 @@
+; $Id$
+name = LinkImage
+description = Defines an link image field type.
+dependencies[] = field
+dependencies[] = image
+package = Fields
+core = 7.x

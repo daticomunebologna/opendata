@@ -1,0 +1,76 @@
+<?php
+
+/**
+ * @file
+ * Module file of the translation management mygengo module.
+ *
+ * http://mygengo.com/
+ *
+ * Implemented by Ryan McGrath, myGengo
+ */
+
+/**
+ *  Implements hook_menu().
+ */
+function tmgmt_mygengo_menu() {
+  $items['tmgmt_mygengo_callback'] = array(
+    'type' => MENU_CALLBACK,
+    'title' => 'mygengo_callback',
+    'description' => '',
+    'page callback' => 'tmgmt_mygengo_callback',
+    'access callback' => 'tmgmt_mygengo_access_check'
+  );
+  return $items;
+}
+
+/**
+ * Process response from mygengo.
+ */
+function tmgmt_mygengo_callback() {
+  $data = json_decode($_POST['job']);
+  $keys = explode('][', $data->custom_data);
+  $tjid = array_shift($keys);
+
+  $job = tmgmt_job_load($tjid);
+  $mygengo = $job->getTranslator()->getController();
+  $mygengo->receiveTranslation($job, $keys, $data);
+  echo '';
+}
+
+/**
+ * tmgmt_mygengo_callback access check.
+ */
+function tmgmt_mygengo_access_check() {
+  try {
+    $job = json_decode($_POST['job']);
+    // @todo Validate signature/key.
+    return TRUE;
+  } catch (Exception $e) {
+
+    // Debug it for now, why not...
+    watchdog('mygengo', print_r($_REQUEST, TRUE));
+    return FALSE;
+  }
+}
+
+/**
+ * Implements hook_tmgmt_translator_plugin_info().
+ */
+function tmgmt_mygengo_tmgmt_translator_plugin_info() {
+  return array(
+    'mygengo' => array(
+      'label' => t('myGengo translator'),
+      'description' => t('A myGengo translator service.'),
+      'plugin controller class' => 'TMGMTMyGengoTranslatorPluginController',
+      'ui controller class' => 'TMGMTMyGengoTranslatorUIController',
+    ),
+  );
+}
+
+/**
+ * Ajax callback to fetch the options provided by a translator.
+ */
+function tmgmt_mygengo_quote($form, &$form_state) {
+  return $form['translator_wrapper']['options']['settings']['quote'];
+}
+

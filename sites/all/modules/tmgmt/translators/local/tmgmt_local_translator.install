@@ -1,0 +1,40 @@
+<?php
+/**
+ * @file
+ * Install file for local translator.
+ */
+
+/**
+ * Implements hook_schema()
+ */
+function tmgmt_local_translator_schema() {
+  $schema['tmgmt_local_user'] = array(
+    'description' => 'From which language to which language a user can translate',
+    'fields' => array(
+      'uid' => array(
+        'description' => 'User uid',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => "Whether this is a source or a target language ('source', 'target').",
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+      ),
+      'language' => array(
+        'description' => 'The language code for languages the user knows.',
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('uid', 'type', 'language'),
+    'indexes' => array(
+      'uid' => array('uid'),
+      'type_language' => array('type', 'language'),
+    ),
+  );
+  return $schema;
+}

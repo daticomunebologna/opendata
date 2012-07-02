@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Module file of the translation management mygengo test module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function tmgmt_mygengo_test_menu() {
+  $items['tmgmt_mygengo_mock/v1.1/translate/jobs'] = array(
+    'page callback' => 'tmgmt_mygengo_test_service_translate',
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
+  );
+  $items['tmgmt_mygengo_mock/v1.1/translate/service/language_pairs'] = array(
+    'page callback' => 'tmgmt_mygengo_test_service_get_languages',
+    'type' => MENU_CALLBACK,
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Page callback for getting the supported languages.
+ */
+function tmgmt_mygengo_test_service_get_languages() {
+  $languages = array(
+    'de' => array(
+      'lc_tgt' => 'de',
+    ),
+    'en' => array(
+      'lc_tgt' => 'en',
+    ),
+    'es' => array(
+      'lc_tgt' => 'es',
+    ),
+  );
+
+  // Remote source language.
+  unset($languages[$_GET['lc_src']]);
+
+  drupal_json_output(array(
+    'opstat' => 'ok',
+    'response' => $languages,
+  ));
+}
+
+/*
+ * Page callback for getting the supported languages.
+ */
+function tmgmt_mygengo_test_service_translate() {
+
+  $opstat = 'failure';
+
+  if ($_POST['api_key'] == 'correct key') {
+    $sig = hash_hmac('sha1', $_POST['ts'], 'correct key');
+    if ($sig == $_POST['api_sig']) {
+      $opstat = 'ok';
+      variable_set('tmgmt_mygengo_test_data', json_decode($_POST['data']));
+    }
+  }
+
+  drupal_json_output(array(
+    'opstat' => $opstat,
+    'response' => 'TBD',
+  ));
+}
+

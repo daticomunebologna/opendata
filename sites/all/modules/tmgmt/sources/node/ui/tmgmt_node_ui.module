@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Main module file for the translation management node source plugin user
+ * interface.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function tmgmt_node_ui_menu() {
+  $items['node/%node/translate/history'] = array(
+    'title' => 'Translation Job History',
+    'page callback' => 'tmgmt_node_ui_translation_history',
+    'page arguments' => array(1),
+    'access callback' => '_translation_tab_access',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 20,
+    'file' => 'tmgmt_node_ui.pages.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function tmgmt_node_ui_admin_paths() {
+  if (variable_get('node_admin_theme')) {
+    $paths = array(
+      'node/*/translate/history' => TRUE,
+    );
+    return $paths;
+  }
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function tmgmt_node_ui_page_alter(&$page) {
+  // Translation tabs for nodes.
+  if (module_exists('tmgmt_node') && ($node = menu_get_object())) {
+    if (isset($page['content']['system_main']['translation_node_overview'])) {
+      module_load_include('inc', 'tmgmt_node_ui', 'tmgmt_node_ui.pages');
+      $page['content']['system_main']['translation_node_overview'] = drupal_get_form('tmgmt_node_ui_node_form', $node, $page['content']['system_main']['translation_node_overview']);
+    }
+    elseif (isset($page['content']['system_main']['entity_translation_overview'])) {
+      module_load_include('inc', 'tmgmt_node_ui', 'tmgmt_node_ui.pages');
+      $page['content']['system_main']['entity_translation_overview'] = drupal_get_form('tmgmt_node_ui_node_form', $node, $page['content']['system_main']['entity_translation_overview']);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_operations().
+ */
+function tmgmt_node_ui_node_operations() {
+  if (module_exists('tmgmt_node')) {
+    $operations = array(
+      'tmgmt_translate' => array(
+        'label' => t('Translate selected content'),
+        'callback' => 'tmgmt_node_ui_translate_node_multiple',
+      ),
+    );
+    return $operations;
+  }
+}
+
+/**
+ * Node operations callback for translation multiple nodes.
+ */
+function tmgmt_node_ui_translate_node_multiple($nodes) {
+  $nodes = node_load_multiple($nodes);
+  foreach ($nodes as $node) {
+    $language = isset($language) ? $language : $node->language;
+    if (isset($language) && $node->language != $language) {
+      drupal_set_message(t('You selected multiple nodes with different source languages. You can only translate nodes in a bulk operation if they share the same source language.'), 'error');
+      return;
+    }
+  }
+  // Now that we know that all the passed nodes share the same source language
+  // we can actually create a job and fill it up.
+  $job = tmgmt_job_create($node->language, NULL, $GLOBALS['user']->uid);
+  foreach ($nodes as $node) {
+    $job->addItem('node', 'node', $node->nid);
+  }
+  // Fire the checkout procedure for this job.
+  tmgmt_ui_job_checkout_multiple(array($job));
+}

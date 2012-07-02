@@ -1,0 +1,719 @@
+<?php
+/**
+ * @file
+ * Integrates piwik statistics as entity field.
+ *
+ * TODO Implement a full views integration.
+ */
+
+/**
+ * No errors while filling the piwik stats fields.
+ */
+define('PIWIK_STATS_OK', 0);
+
+/**
+ * A HTTP error occurred during the API request.
+ */
+define('PIWIK_STATS_ERROR_HTTP', 1);
+
+/**
+ * The returned XML data could not be parsed.
+ */
+define('PIWIK_STATS_ERROR_XML', 2);
+
+/**
+ * The returned XML data was empty and holds no data.
+ */
+define('PIWIK_STATS_NO_DATA', 3);
+
+/**
+ * Implements hook_menu().
+ */
+function piwik_stats_menu() {
+  // Lets provide a piwik statistics tab on nodes.
+  $items['node/%node/piwik'] = array(
+    'title' => 'Piwik statistics',
+    'page callback' => 'piwik_stats_tab_page',
+    'page arguments' => array('node', 1),
+    'access arguments' => array('access piwik information'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  // Lets provide a piwik statistics tab on user pages.
+  $items['user/%user/piwik'] = array(
+    'title' => 'Piwik statistics',
+    'page callback' => 'piwik_stats_tab_page',
+    'page arguments' => array('user', 1),
+    'access arguments' => array('access piwik information'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function piwik_stats_permission() {
+  return array(
+    // Permission for accessing the statistics tab on nodes, users etc.
+    'access piwik information' => array(
+      'description' => t('View piwik statistics tab on nodes, users etc.'),
+      'title' => t('Access piwik information'),
+    ),
+  );
+}
+
+/**
+ * Page callback to show statistical information on local task tabs.
+ */
+function piwik_stats_tab_page($entity_type, $entity) {
+  $tables = array();
+
+  // Some default options needed for _field_invoke_get_instances().
+  $options = array(
+    'default' => FALSE,
+    'deleted' => FALSE,
+    'language' => NULL,
+  );
+
+  // Determine the list of field instances to iterate on.
+  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+  $instances = _field_invoke_get_instances($entity_type, $bundle, $options);
+
+  // Iterate through all field instances of the entity, check if they are
+  // piwik statistical fields in order to render a table of their contents.
+  foreach ($instances as $field_name => $instance) {
+
+    // Get information about the field instance.
+    $field_info = field_info_field($field_name);
+
+    // Check if we've got a piwik stats field here.
+    if ($field_info['type'] == 'piwik_stats') {
+      // Grab it's contents.
+      $field = $entity->$field_name;
+      $language = (empty($entity->language)) ? LANGUAGE_NONE : $entity->language;
+      $field_contents = (isset($field[$language][0])) ? $field[$language][0] : array();
+
+      // Set table caption, headers and some other needed default values.
+      $tables[$field_name] = array(
+        'header' => array(
+          t('Description'),
+          t('Value'),
+        ),
+        'caption' => t('@field-label (period: %period)', array(
+          '@field-label' => $instance['label'],
+          '%period' => $field_info['settings']['period'],
+          )
+        ),
+        'colgroups' => array(),
+        'sticky' => FALSE,
+        'empty' => t('Sorry, no data available yet.'),
+        'attributes' => array('piwik-statistics', $field_name),
+        'rows' => array(),
+      );
+
+      // Get descriptions for piwik value keys.
+      $descriptions = piwik_stats_keyed_descriptions();
+      // Iterate trough all values and build the table.
+      foreach ($field_contents as $key => $value) {
+        // Set the describing value.
+        $tables[$field_name]['rows'][$key][] = $descriptions[$key];
+        // Set the statistical value depending on its type.
+        if ($key == 'entry_sum_visit_length' || $key == 'sum_time_spent') {
+          // Format value as date intervall.
+          $tables[$field_name]['rows'][$key][] = format_interval($value);
+        }
+        elseif ($key == 'exit_rate' || $key == 'bounce_rate') {
+          // Format as percent value.
+          $tables[$field_name]['rows'][$key][] = $value . '%';
+        }
+        else {
+          // None formatted value.
+          $tables[$field_name]['rows'][$key][] = $value;
+        }
+      }
+    }
+  }
+
+  // If there are no tables, there were no piwik fields.
+  if (empty($tables)) {
+    $output = array('#markup' => t('You have to add at least one piwik field to this entity.'));
+  }
+  else {
+    $output = '';
+    // Render each table.
+    foreach ($tables as $table) {
+      $output .= theme_table($table);
+    }
+  }
+  return $output;
+}
+
+/**
+ * Implements hook_field_info().
+ *
+ * Provides the description of the field.
+ */
+function piwik_stats_field_info() {
+  return array(
+    'piwik_stats' => array(
+      'label' => t('Piwik Statistical Field'),
+      'description' => t('Holds piwiks statistical information of a node.'),
+      'default_widget' => 'piwik_stats_hidden',
+      'default_formatter' => 'piwik_stats_list',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_settings_form().
+ */
+function piwik_stats_field_settings_form($field, $instance, $has_data) {
+  $settings = $field['settings'];
+  // Add field settings for statistic period.
+  $form['period'] = array(
+    '#type' => 'select',
+    '#title' => t('Period'),
+    '#default_value' => @$settings['period'],
+    '#options' => array(
+      'day' => t('Day'),
+      'week' => t('Week'),
+      'month' => t('Month'),
+      'year' => t('Year'),
+    ),
+    '#required' => TRUE,
+    '#description' => t('The period of the requested statistics.'),
+  );
+  return $form;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function piwik_stats_field_formatter_info() {
+  return array(
+    // The default piwik stats formatter lists statistics as configured.
+    'piwik_stats_list' => array(
+      'label' => t('Statistics list'),
+      'field types' => array('piwik_stats'),
+      'settings' => array(
+        'nb_visits' => TRUE,
+        'nb_hits' => TRUE,
+        'entry_nb_visits' => TRUE,
+        'entry_nb_actions' => TRUE,
+        'entry_sum_visit_length' => TRUE,
+        'entry_bounce_count' => TRUE,
+        'exit_nb_visits' => TRUE,
+        'sum_time_spent' => TRUE,
+        'bounce_rate' => TRUE,
+        'exit_rate' => TRUE,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function piwik_stats_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $summary = '';
+
+  // Generate a summary string for list formatter display settings.
+  if ($display['type'] === 'piwik_stats_list') {
+    $summary_elements = array();
+    // Get key -> description listing of piwik.
+    $descriptions = piwik_stats_keyed_descriptions();
+    // Iterate through all keys and add them as summary element if set.
+    foreach ($descriptions as $key => $description) {
+      if ($settings[$key]) {
+        $summary_elements[] = $description;
+      }
+    }
+    // Build the summary string.
+    if (! empty($summary_elements)) {
+      $summary = implode(', ', $summary_elements);
+    }
+    else {
+      $summary = t('None');
+    }
+  }
+
+  return $summary;
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function piwik_stats_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $element = array();
+
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  // Field display settings for the list formatter.
+  if ($display['type'] === 'piwik_stats_list') {
+    // Get key -> description listing of piwik.
+    $descriptions = piwik_stats_keyed_descriptions();
+    // Iterate through all keys and add them as checkbox.
+    foreach ($descriptions as $key => $description) {
+      $element[$key] = array(
+        '#type' => 'checkbox',
+        '#title' => $description,
+        '#default_value' => $settings[$key],
+      );
+    }
+  }
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function piwik_stats_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $settings = $display['settings'];
+
+  if ($display['type'] === 'piwik_stats_list') {
+    foreach ($items as $delta => $item) {
+      // Print the values in a html list as configured by field settings.
+      $list_elements = array();
+      // Get descriptions for piwik value keys.
+      $descriptions = piwik_stats_keyed_descriptions();
+      // Iterate trough all describing keys.
+      foreach ($descriptions as $key => $description) {
+        if ($settings[$key]) {
+          // Set the statistical value depending on its type.
+          if ($key == 'entry_sum_visit_length' || $key == 'sum_time_spent') {
+            // Format value as date intervall.
+            $list_elements[] = $description . ': ' . format_interval($item[$key]);
+          }
+          elseif ($key == 'exit_rate' || $key == 'bounce_rate') {
+            // Format as percent value.
+            $list_elements[] = $description . ': ' . $item[$key] . '%';
+          }
+          else {
+            // None formatted value.
+            $list_elements[] = $description . ': ' . $item[$key];
+          }
+        }
+      }
+      $element[$delta] = array(
+        '#theme' => 'item_list',
+        '#items' => $list_elements,
+      );
+    }
+  }
+  return $element;
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function piwik_stats_field_is_empty($item, $field) {
+  return empty($item);
+}
+
+/**
+ * Implements hook_field_widget_info().
+ *
+ * Defining a hidden pseudo widget.
+ */
+function piwik_stats_field_widget_info() {
+  return array(
+    'piwik_stats_hidden' => array(
+      'label' => t('None, filled by cron'),
+      'field types' => array('piwik_stats'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds piwik stats settings to piwik configuration.
+ */
+function piwik_stats_form_piwik_admin_settings_form_alter(&$form, &$form_state, $form_id) {
+  $form['account']['piwik_stats_token_auth'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Piwik authentication token'),
+    '#default_value' => variable_get('piwik_stats_token_auth', ''),
+    '#size' => 80,
+    '#maxlength' => 34,
+    '#required' => TRUE,
+    '#description' => t('This is needed by Piwik Statistical Field to request statistic data.'),
+  );
+  // Add cron run settings.
+  $form['advanced']['piwik_stats_cron_fill'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Fill Piwik fields on cron run'),
+    '#default_value' => variable_get('piwik_stats_cron_fill', TRUE),
+    '#description' => t('If enabled, Piwik Statistical fields will be filled on cron run.'),
+  );
+  // Add submit callback to save input.
+  $form['#submit'][] = 'piwik_stats_piwik_admin_settings_form_submit';
+  // Submit button for refreshing piwik_stats table.
+  $form['actions']['fill_piwik_stats'] = array(
+    '#type' => 'submit',
+    '#submit' => array('piwik_stats_piwik_admin_settings_fill_statistical_fields_submit'),
+    '#value' => t('Fill statistical Piwik fields'),
+  );
+}
+
+/**
+ * Submit callback for piwik configuration form.
+ */
+function piwik_stats_piwik_admin_settings_form_submit($form, &$form_state) {
+  // Trim and save authentication token.
+  variable_set('piwik_stats_token_auth', trim($form_state['input']['piwik_stats_token_auth']));
+}
+
+/**
+ * Submit callback for filling piwik_stats fields manually.
+ */
+function piwik_stats_piwik_admin_settings_fill_statistical_fields_submit($form, &$form_state) {
+  // Start filling the fields.
+  $status = piwik_stats_fill_fields(
+    variable_get('piwik_stats_token_auth', ''),
+    variable_get('piwik_site_id', 0),
+    variable_get('piwik_url_http', '')
+  );
+
+  // Check the result and print it.
+  switch ($status) {
+    case PIWIK_STATS_OK:
+      drupal_set_message(t('All Piwik Statistical Fields were filled successfully.'));
+      break;
+    case PIWIK_STATS_ERROR_HTTP:
+      drupal_set_message(t('Requesting Piwik Statistics failed: HTTP error.'), 'error');
+      break;
+    case PIWIK_STATS_ERROR_XML:
+      drupal_set_message(t('Requesting Piwik Statistics failed: Could not parse XML.'), 'error');
+      break;
+    case PIWIK_STATS_NO_DATA:
+      drupal_set_message(t('Requesting Piwik Statistics failed: There was no data available.'), 'error');
+      break;
+  }
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * If set, statistical piwik fields will be filled on cron run.
+ */
+function piwik_stats_cron() {
+  if (variable_get('piwik_stats_cron_fill', TRUE)) {
+    // Fill them!
+    $status = piwik_stats_fill_fields(
+      variable_get('piwik_stats_token_auth', ''),
+      variable_get('piwik_site_id', 0),
+      variable_get('piwik_url_http', '')
+    );
+
+    // Check the result and log it.
+    switch ($status) {
+      case PIWIK_STATS_OK:
+        watchdog('piwik_stats', 'All Piwik Statistical Fields were filled successfully.');
+        break;
+      case PIWIK_STATS_ERROR_HTTP:
+        watchdog('piwik_stats', 'Requesting Piwik Statistics failed: HTTP returned: @code.',
+          array('@code' => $result->code), WATCHDOG_ERROR);
+        break;
+      case PIWIK_STATS_ERROR_XML:
+        watchdog('piwik_stats', 'Requesting Piwik Statistics failed: Could not parse XML.',
+          array(), WATCHDOG_ERROR);
+        break;
+      case PIWIK_STATS_NO_DATA:
+        watchdog('piwik_stats', 'Requesting Piwik Statistics failed: There was no data available.',
+          array(), WATCHDOG_ERROR);
+        break;
+    }
+  }
+}
+
+/**
+ * Re/Fills the Piwik Statistical Fields with statistical data.
+ *
+ * @param string $token_auth
+ *   Authentication token needed to authenticate with piwik.
+ * @param int $site_id
+ *   Unique site ID of piwik.
+ * @param string $piwik_url
+ *   URL to piwik.
+ *
+ * @return int
+ *   Integer representing a status code.
+ */
+function piwik_stats_fill_fields($token_auth, $site_id, $piwik_url) {
+  // Get all fields of type piwik_stats.
+  $piwik_fields = field_read_fields(array(
+    'type' => 'piwik_stats',
+  ));
+
+  // Iterate through all piwik fields.
+  foreach ($piwik_fields as $field_name => $field) {
+
+    // Get all instances of a piwik_stats field.
+    $field_instances = field_read_instances(array(
+      'field_id' => $field['id'],
+    ));
+
+    // Request piwik XML data.
+    $result = _piwik_stats_api_request(
+      $piwik_url,
+      $token_auth,
+      'Actions.getPageUrls',
+      $site_id,
+      $field['settings']['period']
+    );
+    // Check HTTP status code of response.
+    if ($result->code != 200 || $result->headers['content-type'] != 'text/xml; charset=utf-8') {
+      return PIWIK_STATS_ERROR_HTTP;
+    }
+
+    // Parse XML data.
+    $xml = new SimpleXMLElement($result->data);
+    // Be shure that there is really some data to work with.
+    if (isset($xml->error)) {
+      return PIWIK_STATS_ERROR_XML;
+    }
+    elseif (empty($xml)) {
+      // If there is no data returned, we will process with the next one.
+      continue;
+    }
+
+    // Iterate through all instances of a piwik field.
+    foreach ($field_instances as $field_instance) {
+
+      // Get a list of all entity objects holding the needed id's.
+      $entities = _piwik_stats_get_entities($field_instance['entity_type'], $field_instance['bundle']);
+
+      // Iterate through the list of entities with fields to fill.
+      foreach ($entities as $entity) {
+
+        // Get the default URI of the current entity.
+        $entity_uri = entity_uri($field_instance['entity_type'], $entity);
+        // Get all URL aliases linked to the entity URI.
+        $urls = _piwik_stats_get_aliases($entity_uri['path']);
+
+        // Sum up all statistical data of each URL to a piwik field.
+        $piwik_stats_field = _piwik_stats_summarize_field($urls, $xml);
+        // Add the filled piwik stats field to the entity.
+        $entity->$field_name = $piwik_stats_field;
+
+        // Save the updated piwik field.
+        field_attach_update($field_instance['entity_type'], $entity);
+      }
+    }
+  }
+
+  return PIWIK_STATS_OK;
+}
+
+/**
+ * Sends a Piwik API request.
+ *
+ * TODO Think about caching response data here.
+ *
+ * @param string $piwik_url
+ *   URL to piwik.
+ * @param string $token_auth
+ *   Authentication token needed to authenticate with piwik.
+ * @param string $method
+ *   Piwik API request method.
+ * @param int $site_id
+ *   Unique site ID of piwik.
+ * @param string $period
+ *   Statistical period.
+ *   Default is 'year' but also 'day', 'week' or 'month' is possible.
+ * @param int $date
+ *   Statistic base date.
+ * @param string $format
+ *   API return format. Default is XML but also CSV, TSV and JSON is possible.
+ *
+ * @return object
+ *   The returned object of drupal_http_request().
+ */
+function _piwik_stats_api_request($piwik_url, $token_auth, $method, $site_id, $period = 'year', $date = 'now', $format = 'xml') {
+  $result_object = drupal_http_request(
+    url($piwik_url,
+      array(
+        'query' => array(
+          'module' => 'API',
+          'method' => $method,
+          'idSite' => $site_id,
+          'period' => $period,
+          'date' => $date,
+          'format' => $format,
+          'token_auth' => $token_auth,
+          'expanded' => TRUE,
+        ),
+      )
+    )
+  );
+  return $result_object;
+}
+
+/**
+ * Returns a list of entity objects only holding entity id's.
+ *
+ * TODO Think about caching data here.
+ *
+ * @param string $type
+ *   The entity type.
+ * @param string $bundle
+ *   The entity bundle.
+ *
+ * @return array
+ *   An array of lightweight entity objects as returned from database.
+ */
+function _piwik_stats_get_entities($type, $bundle) {
+  // Get information about entity type.
+  $entity_info = entity_get_info($type);
+
+  // Get all entity id's of a specific type and bundle.
+  $select = db_select($entity_info['base table'], 'b');
+  $select->addField('b', $entity_info['entity keys']['id']);
+  // Some entity tables neither have revisisons nor bundles.
+  if (! empty($entity_info['entity keys']['revision'])) {
+    $select->addField('b', $entity_info['entity keys']['revision']);
+  }
+  if (! empty($entity_info['entity keys']['bundle'])) {
+    $select->addField('b', $entity_info['entity keys']['bundle']);
+    $select->condition('b.type', $bundle);
+  }
+  if ($type == 'node') {
+    $select->addField('b', 'status');
+  }
+  $entities = $select->execute()->fetchAll();
+  return $entities;
+}
+
+/**
+ * Returns a list of url aliases of a system path.
+ *
+ * @param string $uri
+ *   A system path, eg. an entity URI.
+ *
+ * @return array
+ *   An array of url aliases.
+ */
+function _piwik_stats_get_aliases($uri) {
+  // The URLs we get from piwik are absolute, so we transform them as needed.
+  $urls = array(url($uri, array('absolute' => TRUE, 'alias' => TRUE)));
+
+  // Grab all URL aliases of the system URI.
+  $select = db_select('url_alias', 'u');
+  $select->addField('u', 'alias');
+  $select->condition('u.source', $uri);
+  $aliases = $select->execute()->fetchAll();
+  foreach ($aliases as $alias) {
+    $urls[] = url($alias->alias, array('absolute' => TRUE, 'alias' => TRUE));
+  }
+
+  return $urls;
+}
+
+/**
+ * Summarizes all statistical data from XML with matching URLs.
+ *
+ * @param array $urls
+ *   An array of url aliases.
+ * @param object $xml
+ *   A XML object containing piwik URL statistics.
+ *
+ * @return array
+ *   An array representing the filled piwik_stats field.
+ */
+function _piwik_stats_summarize_field($urls, $xml) {
+  // Initialize field values as needed.
+  $stats = array();
+  $stats['und'][0]['nb_visits'] = 0;
+  $stats['und'][0]['nb_hits'] = 0;
+  $stats['und'][0]['entry_nb_visits'] = 0;
+  $stats['und'][0]['entry_nb_actions'] = 0;
+  $stats['und'][0]['entry_sum_visit_length'] = 0;
+  $stats['und'][0]['entry_bounce_count'] = 0;
+  $stats['und'][0]['exit_nb_visits'] = 0;
+  $stats['und'][0]['sum_time_spent'] = 0;
+  $stats['und'][0]['bounce_rate'] = 0;
+  $stats['und'][0]['exit_rate'] = 0;
+
+  // Iterate thorugh all url aliases and sum up statistics.
+  foreach ($urls as $url) {
+    // Grab statistical data from XML per URL.
+    $url_stats = $xml->xpath('//url[text()="' . $url . '"]/..');
+
+    if (! empty($url_stats)) {
+      // The following values are integers and can be summed up easily.
+      if (isset($url_stats[0]->nb_visits)) {
+        $stats['und'][0]['nb_visits'] += $url_stats[0]->nb_visits;
+      }
+      if (isset($url_stats[0]->nb_hits)) {
+        $stats['und'][0]['nb_hits'] += $url_stats[0]->nb_hits;
+      }
+      if (isset($url_stats[0]->entry_nb_visits)) {
+        $stats['und'][0]['entry_nb_visits'] += $url_stats[0]->entry_nb_visits;
+      }
+      if (isset($url_stats[0]->entry_nb_actions)) {
+        $stats['und'][0]['entry_nb_actions'] += $url_stats[0]->entry_nb_actions;
+      }
+      if (isset($url_stats[0]->entry_sum_visit_length)) {
+        $stats['und'][0]['entry_sum_visit_length'] += $url_stats[0]->entry_sum_visit_length;
+      }
+      if (isset($url_stats[0]->entry_bounce_count)) {
+        $stats['und'][0]['entry_bounce_count'] += $url_stats[0]->entry_bounce_count;
+      }
+      if (isset($url_stats[0]->exit_nb_visits)) {
+        $stats['und'][0]['exit_nb_visits'] += $url_stats[0]->exit_nb_visits;
+      }
+      if (isset($url_stats[0]->sum_time_spent)) {
+        $stats['und'][0]['sum_time_spent'] += $url_stats[0]->sum_time_spent;
+      }
+      // These two are percent values (##% formatted).
+      // We need to transform them to integers before we can sum them.
+      if (isset($url_stats[0]->bounce_rate)) {
+        $stats['und'][0]['bounce_rate'] += (int) drupal_substr($url_stats[0]->bounce_rate, 0, -1);
+      }
+      if (isset($url_stats[0]->exit_rate)) {
+        $stats['und'][0]['exit_rate'] += (int) drupal_substr($url_stats[0]->exit_rate, 0, -1);
+      }
+    }
+  }
+
+  return $stats;
+}
+
+/**
+ * Helper function that returns an array of keyed text
+ * describing piwik statistic key values.
+ *
+ * @return array
+ *   A keyed description array.
+ */
+function piwik_stats_keyed_descriptions() {
+  return array(
+    'nb_visits' => t('Visits'),
+    'nb_hits' => t('Hits'),
+    'entry_nb_visits' => t('Entry visits'),
+    'entry_nb_actions' => t('Entry hits'),
+    'entry_sum_visit_length' => t('Visit length'),
+    'entry_bounce_count' => t('Bounce count'),
+    'exit_nb_visits' => t('Exiting visits'),
+    'sum_time_spent' => t('Time spend'),
+    'bounce_rate' => t('Bounce rate'),
+    'exit_rate' => t('Exit rate'),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function piwik_stats_views_api() {
+  return array(
+    'api' => 3,
+  );
+}

@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Source plugin for the Translation Management system that handles entities.
+ */
+
+/**
+ * Implements hook_tmgmt_source_plugin_info().
+ */
+function tmgmt_entity_tmgmt_source_plugin_info() {
+  $info['entity'] = array(
+    'label' => t('Entity'),
+    'description' => t('Source handler for entities.'),
+    'plugin controller class' => 'TMGMTEntitySourcePluginController',
+    'item types' => array(),
+  );
+  // @todo Implement item types.
+  return $info;
+}
+
+/**
+ * Updates an entity translation.
+ *
+ * @param object $entity
+ *   The translated entity object (the target). *
+ * @param array $translation
+ *   An array with the structured translated data.
+ *
+ * @see TMGMTEntitySourcePluginController::getData()
+ */
+function tmgmt_entity_update_entity_translation($entity, $entity_type, $translation, $target_language) {
+  foreach ($translation as $field_name => $values) {
+    $index = 0;
+    foreach ($values as $value) {
+      $tdata = array();
+      foreach ($value as $input_name => $input_value) {
+        $tdata[$input_name] = $input_value['#text'];
+      }
+      if (!isset($entity->{$field_name}[$target_language]) || !isset($entity->{$field_name}[$target_language][$index])) {
+        $entity->{$field_name}[$target_language][$index] = array();
+      }
+      $entity->{$field_name}[$target_language][$index] = array_merge($entity->{$field_name}[$target_language][$index], $tdata);
+      $index++;
+    }
+  }
+  entity_save($entity_type, $entity);
+}

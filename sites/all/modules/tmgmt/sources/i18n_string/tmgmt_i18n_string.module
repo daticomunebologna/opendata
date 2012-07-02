@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @file
+ * Source plugin for the Translation Management system that handles i18n strings.
+ */
+
+/**
+ * Implements hook_tmgmt_source_plugin_info().
+ */
+function tmgmt_i18n_string_tmgmt_source_plugin_info() {
+  $info['i18n_string'] = array(
+    'label' => t('i18n String'),
+    'description' => t('Source handler for i18n strings.'),
+    'plugin controller class' => 'TMGMTI18nStringSourcePluginController',
+    'item types' => array(),
+  );
+  // @todo Implement item types.
+  return $info;
+}
+
+function tmgmt_i18n_string_select_query($i18n_object_type, $languages = NULL) {
+  $languages = drupal_map_assoc(array_keys(language_list()));
+  $select = db_select('i18n_string', 'i18n_s');
+
+  $i = 0;
+  foreach ($languages as $langcode) {
+    $select->leftJoin('locales_target', "lt_$langcode", "i18n_s.lid = %alias.lid AND %alias.language = '$langcode'");
+    $select->addField("lt_$langcode", 'language', "lang_$langcode");
+    $select->fields("i18n_s", array("lid", "textgroup", "context"));
+    /*
+    $select->leftjoin('tmgmt_job_item', "tmgmt_ji_$langcode", "%alias.item_id = concat('$i18n_object_type:', i18n_s.objectid)");
+    $select->leftjoin('tmgmt_job', "tmgmt_job_$langcode", "tmgmt_job_$langcode.tjid = tmgmt_ji_$langcode.tjid AND tmgmt_job_$langcode.target_language = '$langcode'");
+    $select->addField("tmgmt_job_$langcode", 'state', "state_$langcode");
+    $select->addExpression("max(tmgmt_job_$langcode.tjid)", "tmgmt_job_{$langcode}_tjid");
+    */
+    $i++;
+  }
+
+  $select->addExpression("concat(i18n_s.textgroup, ':', i18n_s.context)", 'i18n_string_name');
+  $select->addExpression("concat(i18n_s.textgroup, ':', i18n_s.context)", 'tmgmt_job_item_item_id');
+  // $select->groupBy('tmgmt_job_item_item_id');
+
+  /*
+    $select->condition('tmgmt_job_item', 'soruce_plugin', 'i18n_string');
+    $select->condition('tmgmt_job_item', 'item_type', 'i18n_string');
+  */
+
+  // language filter.
+  // $select->isNotNull("lt_$langcode.language");
+
+  $select->orderBy('i18n_s.textgroup');
+  $select->orderBy('i18n_s.context');
+
+  return array('languages' => $languages, 'query' => $select);
+}
