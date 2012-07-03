@@ -104,21 +104,22 @@ color:#ab2525;
  */
 #footer .block 
 {
- width: 172px;
- float: left;
- margin: 0;
+width: 225px;
+float: left;
+margin: 0px 5px;
 }
-
+/*
 #footer .even 
 {
  margin-top: 0;
  margin-right: 20px;
  margin-bottom: 0;
  margin-left: 20px;
-}
+}*/
 
 #footer h2 
 {
+    height: 25px;
  background-color: transparent;
  background-image: url("../images/double-line.gif");
  background-repeat: repeat-x;

@@ -12,7 +12,7 @@ body
  font-size: 73%;
  background-color: #F5F5F5;
  background-image: url('../images/bg-not-front.gif');
- background-repeat: no-repeat;
+ background-repeat: repeat-x;
  background-position: center top;
 }
 
@@ -20,7 +20,7 @@ body.with-slideshow
 {
  background-color: #F5F5F5;
  background-image: url('../images/bg-pattern-t.gif');
- background-repeat: no-repeat;
+ background-repeat: repeat-x;
  background-position: center top;
 }
 
@@ -549,4 +549,8 @@ color:#0000ff;
 
 .dati .pane-content {
     float:left;
+}
+
+.hidden-block {
+    display:none;
 }
