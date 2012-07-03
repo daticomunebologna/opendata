@@ -247,7 +247,9 @@ body.with-slideshow #main
 body.with-slideshow table.views-table {
  font-size:.9em;
 }
-
+body.with-slideshow table.views-table thead tr {
+    border-bottom: 1px solid black;
+}
 
 /**
  * Sidebar
