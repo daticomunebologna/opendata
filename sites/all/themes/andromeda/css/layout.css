@@ -431,11 +431,11 @@ ul.download-file span.detail
  padding-left: 4px;
 }
 
-
+/*
 .content .field-item a	{
 	color:#0000ff;
 }
-
+*/
 
 .tabella-tutti-dati	{
 margin-bottom:30px;
@@ -538,4 +538,15 @@ h2.field-content a
 
 .search-result a {
 color:#0000ff;
+}
+
+
+.block-home-link {
+    width: 250px;
+    float:left;
+    margin:0px 25px;
+}
+
+.dati .pane-content {
+    float:left;
 }
