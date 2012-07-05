@@ -1,0 +1,26 @@
+name = SimpleMenu Multi-Menu support
+description = Give support to display multiple menu in the top row.
+dependencies[] = simplemenu
+dependencies[] = menu
+files[] = simplemenu_multi_menu.install
+files[] = simplemenu_multi_menu.module
+core = 7.x
+package = Menu
+project = simplemenu
+
+version = "7.x-1.x-dev"
+
+
+; Information added by drupal.org packaging script on 2010-05-26
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "simplemenu"
+datestamp = "1274876110"
+
+
+; Information added by drupal.org packaging script on 2012-03-27
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "simplemenu"
+datestamp = "1332851961"
+

@@ -1,0 +1,54 @@
+<?php
+/**
+ * @file
+ * Installation file for elfinder.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function elfinder_requirements($phase) {
+  require_once drupal_get_path('module', 'elfinder') . "/elfinder.module";
+  $requirements = array();
+  $t = get_t();
+
+  $libpath = elfinder_lib_path();
+
+  if ($phase == 'runtime' || $phase == 'install') {
+    $description = $t('elFinder library was not found. Please download it from <a href="@url">@url</a> and install to @libpath.', array('@url' => 'http://sourceforge.net/projects/elfinder/files/', '@libpath' => $libpath));
+
+    $severity = '';
+    $value = $t('Not found');
+
+    if ( !(is_readable($libpath . '/connectors/php/elFinder.class.php') && is_readable($libpath . '/js/elfinder.min.js')) ) {
+      $severity = REQUIREMENT_ERROR;
+    }
+    else {
+      $editor_file_content = file_get_contents($libpath . '/js/elfinder.min.js');
+
+      $value = $t('Exists');
+
+      if (preg_match("/this\.version\s*=\s*[\"\']([^\"\']+)[\"\']/", $editor_file_content, $matches)) {
+        $value .= $t(' (version @ver)', array('@ver' => $matches[1]));
+      }
+
+      $description = '';
+
+      $severity = REQUIREMENT_OK;
+    }
+
+    $requirements['elfinder'] = array(
+        'title' => 'elFinder',
+        'description' => $description,
+        'value' => $value,
+        'severity' => $severity
+    );
+  }
+
+  return $requirements;
+}
+
+function elfinder_uninstall() {
+ db_query("DELETE FROM {variable} WHERE name LIKE 'elfinder_%%'");
+ cache_clear_all('variables', 'cache');
+}

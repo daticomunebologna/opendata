@@ -1,0 +1,64 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ *
+ * linkimagefield install and update code.
+ * Defines the field schema.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function linkimagefield_field_schema($field) {
+  return array(
+    'columns' => array(
+      'fid' => array(
+        'description' => 'The {file_managed}.fid being referenced in this field.',
+        'type' => 'int',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ),
+      'alt' => array(
+        'description' => "Alternative image text, for the image's 'alt' attribute.",
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+      'title' => array(
+        'description' => "Image title text, for the image's 'title' attribute.",
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+      'url' => array(
+        'description' => "The URL used for the image link.",
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+      'target' => array(
+        'description' => "The target type of the image link.",
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+      'nofollow' => array(
+        'description' => "A relation tag telling bots not to follow this link",
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+    ),
+    'indexes' => array(
+      'fid' => array('fid'),
+    ),
+    'foreign keys' => array(
+      'fid' => array(
+        'table' => 'file_managed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+  );
+}

@@ -1,0 +1,133 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the andromeda slideshow module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function andromeda_slideshow_schema() {
+  $schema['slideshows'] = array(
+    'description' => 'Base table for storing global information for each slideshow',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The primary identifier for a slideshow.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'name' => array(
+        'description' => 'The machine name for the slideshow.',
+        'type' => 'varchar',
+        'length' => 128,
+      ),
+      'title' => array(
+        'description' => 'Title of a slideshow.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'Description of a slideshow.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'settings' => array(
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'A serialized array of data.',
+      ),
+    ),
+    'primary key' => array('sid'),
+    'unique keys' => array(
+      'name' => array('name'),
+    ),
+  );
+  
+  $schema['slideshows_images'] = array(
+    'description' => 'Base table for storing global information for each slideshow image',
+    'fields' => array(
+      'siid' => array(
+        'description' => 'The primary identifier for a slideshow image.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE
+      ),
+      'fid' => array(
+       'description' => 'The file id for the image. See the files table',
+       'type' => 'int',
+       'unsigned' => TRUE,
+       'not null' => TRUE
+      ),
+      'title' => array(
+        'description' => 'Title of a slideshow image.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'caption' => array(
+        'description' => 'Caption of a slideshow image.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'settings' => array(
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'A serialized array of data.',
+      ),
+    ),
+    'primary key' => array('siid'),
+    'foreign keys' => array(
+      'fid' => array(
+        'table' => 'file_managed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+  );
+  
+  $schema['slideshows_index'] = array(
+    'description' => 'Maintains information about slideshows/images relationships.',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The {slideshows}.sid.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'siid' => array(
+         'description' => 'The slideshow image siid.',
+         'type' => 'int',
+         'unsigned' => TRUE,
+         'not null' => TRUE,
+         'default' => 0,
+      ),
+      'position' => array(
+        'description' => 'The position of the image in this slideshow.',
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => FALSE
+      ),
+    ),
+    'foreign keys' => array(
+      'sid' => array(
+        'table' => 'slideshows',
+        'columns' => array('sid' => 'sid'),
+      ),
+      'siid' => array(
+        'table' => 'slideshows_images',
+        'columns' => array('siid' => 'siid'),
+      ),
+    ),
+  );
+
+  return $schema;
+}

@@ -1,0 +1,20 @@
+name = SimpleMenu
+description = Displays a menu bar with drop down items. By default it appears at the top of the screen with the Navigation menu.
+core = 7.x
+package = Menu
+files[] = simplemenu.admin.inc
+files[] = simplemenu.install
+files[] = simplemenu.module
+configure = admin/config/simplemenu
+
+; Normally aded by Drupal
+version = "7.x-1.x-dev"
+project = simplemenu
+datestamp = "1274876110"
+
+; Information added by drupal.org packaging script on 2012-03-27
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "simplemenu"
+datestamp = "1332851961"
+

@@ -1,0 +1,726 @@
+<?php
+/**
+ * @file
+ * Slideshow for the Andromeda (http://drupal.org/project/andromeda) Theme
+ */
+
+/**
+ * Implements hook_init().
+ */
+function andromeda_slideshow_init() {
+  //add css files
+  drupal_add_css(drupal_get_path('module', 'andromeda_slideshow') . '/css/andromeda_slideshow.css');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function andromeda_slideshow_menu() {
+  $items = array();
+  
+  $items['admin/structure/slideshows'] = array(
+    'title' => 'Slideshows',
+    'description' => 'Manage slideshows.',
+    'page callback' => 'andromeda_slideshow_admin',
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'includes/andromeda_slideshow.admin.inc',
+  );
+  
+  $items['admin/structure/slideshows/manage'] = array(
+    'title' => 'Manage',
+    'description' => 'Manage slideshows',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_admin_form'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'file' => 'includes/andromeda_slideshow.admin.inc',
+  );
+  
+  $items['admin/structure/slideshows/create'] = array(
+    'title' => 'Create slideshow',
+    'description' => 'Create a new slideshow.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_form'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/edit/%andromeda_slideshow'] = array(
+    'title' => 'Edit slideshow',
+    'description' => 'Edit a slideshow.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_form', 4),
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/delete/%andromeda_slideshow'] = array(
+    'title' => 'Delete slideshow',
+    'description' => 'Delete a slideshow.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_delete_form', 4),
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/manage/%andromeda_slideshow'] = array(
+    'title' => 'Manage slideshow',
+    'description' => 'Manage a slideshow.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_manage_form', 4),
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/enable/%'] = array(
+    'title' => 'Enable slideshow',
+    'description' => 'Enable a slideshow.',
+    'page callback' => 'andromeda_slideshow_enable_slideshow',
+    'page arguments' => array(4, 'admin/structure/slideshows'),
+    'file' => 'includes/andromeda_slideshow.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/disable/%'] = array(
+    'title' => 'Enable slideshow',
+    'description' => 'Enable a slideshow.',
+    'page callback' => 'andromeda_slideshow_disable_slideshow',
+    'page arguments' => array(4, 'admin/structure/slideshows'),
+    'file' => 'includes/andromeda_slideshow.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/manage/%andromeda_slideshow/add'] = array(
+    'title' => 'Add an image',
+    'description' => 'Add an image.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_image_form', 4),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/manage/%andromeda_slideshow/edit/%andromeda_slideshow_image'] = array(
+    'title' => 'Edit an image',
+    'description' => 'Edit an image.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_image_form', 4, 6),
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  $items['admin/structure/slideshows/manage/%andromeda_slideshow/delete/%andromeda_slideshow_image'] = array(
+    'title' => 'Delete an image',
+    'description' => 'Delete an image.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('andromeda_slideshow_image_delete_form', 4, 6),
+    'file' => 'includes/andromeda_slideshow.forms.inc',
+    'weight' => 10,
+  );
+  
+  foreach ($items as $path => $item) {
+    if (!isset($item['access callback'])) {
+      $items[$path]['access callback'] = 'user_access';
+      $items[$path]['access arguments'] = array('manage slideshows');
+    }
+  }
+  
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function andromeda_slideshow_permission() {
+  return array(
+    'manage slideshows' => array(
+      'title' => t('Manage Slideshows'),
+      'description' => t('Create, enable and disable slideshows.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function andromeda_slideshow_theme() {
+  $themes = array(
+    'andromeda_slideshow_manage_form_table' => array(
+      'render element' => 'form',
+      'file' => 'andromeda_slideshow.pages.inc',
+    ),
+    'andromeda_slideshow' => array(
+      'variables' => array('slideshow' => NULL, 'images' => NULL),
+      'template' => 'templates/andromeda-slideshow',
+      'file' => 'andromeda_slideshow.pages.inc',
+    ),
+  );
+  
+  //add custom slideshow supports
+  $types = andromeda_slideshow_get_types();
+  foreach ($types as $key => $type) {
+    $theme = 'andromeda_slideshow_' . $key;
+    $themes[$theme] = array(
+      'variables' => array('slideshow' => NULL, 'images' => NULL),
+      'template' => $type['template'],
+      'path' => drupal_get_path('module', $type['module']),
+    );
+  }
+  
+  return $themes;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function andromeda_slideshow_block_info() {
+  //load helper functions
+  ctools_include('andromeda_slideshow', 'andromeda_slideshow');
+  
+  $info = array();
+  $slideshows = andromeda_slideshow_get_enabled_slideshows();
+  
+  //build a block for each slideshow
+  foreach ($slideshows as $slideshow) {
+    $info[$slideshow->name] = array(
+      'info' => t('Slideshow : @name', array('@name' => $slideshow->title)),
+    );
+  }
+  
+  return $info;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function andromeda_slideshow_block_view($delta = '') {
+  $block = array();
+  $name = $delta;
+  $slideshow = andromeda_slideshow_load_by_name($name);
+  if ($slideshow) {
+    $images = andromeda_slideshow_load_slideshow_images($slideshow->sid);
+    $type_name = isset($slideshow->settings['type']) ? $slideshow->settings['type'] : 'andromeda_slideshow';
+    $theme = 'andromeda_slideshow_' . $type_name;
+    $type = andromeda_slideshow_build_type($type_name);
+    
+    //build image style, tag and links
+    $style_name = $slideshow->settings['image_style'];
+    foreach ($images as $key => $image) {
+      $tag = theme('image_style', array('style_name' => $style_name, 'path' => $image->uri, 'title' => $image->caption));
+      $images[$key]->image_tag = $image->settings['link'] ? l($tag, $image->settings['link'], array('html' => true)) : $tag;
+      $images[$key]->image = image_style_url($style_name, $image->uri);
+      if ($image->settings['link']) {
+        $images[$key]->settings['link'] = url($image->settings['link']);
+      }
+    }
+    
+    if (sizeof($images)) {
+      $block['subject'] = $slideshow->title;
+      $block['content']['#attached']['css'] = $type['styles'];
+      $block['content']['#attached']['js'] = $type['scripts'];
+      $block['content']['#markup'] = theme($theme, array('slideshow' => $slideshow, 'images' => $images));
+    }
+  }
+  
+  return $block;
+}
+
+/**
+ * Creates a new slideshow object
+ */
+function andromeda_slideshow_new_slideshow() {
+  $slideshow = new stdClass;
+  
+  return $slideshow;
+}
+
+/**
+ * Loads a slideshow by its $sid
+ *
+ * @param $sid
+ *  the slideshow id
+ *
+ * @return
+ *  object the slideshow
+ */
+function andromeda_slideshow_load($sid) {
+  $slideshow = andromeda_slideshow_load_slideshows(array($sid));
+  
+  return (isset($slideshow[$sid])) ? $slideshow[$sid] : '';
+}
+
+/**
+ * Loads a slideshow by its name
+ *
+ * @param $name
+ *  the name of the slideshow
+ *
+ * @return
+ *  object the slideshow
+ */
+function andromeda_slideshow_load_by_name($name) {
+  $slideshow = andromeda_slideshow_load_slideshows(array($name), TRUE);
+  
+  return (isset($slideshow[$name])) ? $slideshow[$name] : '';
+}
+
+/**
+ * Loads multiple slideshow by $sids
+ *
+ * @param $sids
+ *  keyed array of slideshow sids
+ */
+function andromeda_slideshow_load_slideshows($sids = array(), $by_name = FALSE) {
+  $slideshows = array();
+  $field = 'sid';
+  
+  $query = db_select('slideshows', 's')
+      ->fields('s', array('sid', 'title', 'name', 'description', 'settings'));
+      
+  if (sizeof($sids)) {
+    //load by name if $by_name = TRUE
+    if ($by_name) {
+      $field = 'name';
+    }
+    
+    $query = $query
+      ->condition($field, $sids, 'IN');
+  }
+  
+  $slideshows = $query
+    ->orderBy('s.title')
+    ->execute()
+    ->fetchAllAssoc($field);
+  
+  foreach ($slideshows as $index => $slideshow) {
+    $slideshows[$index]->settings = drupal_json_decode($slideshow->settings);
+  }
+  
+  return $slideshows;
+}
+
+/**
+ * Saves a slideshow to the database
+ *
+ * @param $slideshow
+ *  the slideshow object
+ */
+function andromeda_slideshow_save_slideshow($slideshow) {
+  $fields = array(
+    'name' => $slideshow->name,
+    'title' => $slideshow->title,
+    'description' => $slideshow->description,
+    'settings' => drupal_json_encode($slideshow->settings),
+  );
+  
+  if (empty($slideshow->sid)) {
+    $sid = db_insert('slideshows')
+      ->fields($fields)
+      ->execute();
+  }
+  else {
+    $sid = db_update('slideshows')
+     ->fields($fields)
+     ->condition('sid', $slideshow->sid)
+     ->execute(); 
+  }
+  
+  if ($sid) {
+    $slideshow->sid = $sid;  
+  }
+  
+  return $slideshow;
+}
+
+/**
+ * Deletes a slideshow from the database
+ *
+ * @param $sid
+ *  the slideshow sid
+ */
+function andromeda_slideshow_delete_slideshow($sid) {
+  $result = db_delete('slideshows')
+    ->condition('sid', $sid)
+    ->execute();
+    
+  return $result;
+}
+
+/**
+ * Determines if a slideshow name is in use.
+ */
+function andromeda_slideshow_machine_name_exists($name) {
+  $machine_name_exists = db_query_range('SELECT 1 FROM {slideshows} WHERE name = :name', 0, 1, array(':name' => $name))->fetchField();
+
+  return $machine_name_exists;
+}
+
+
+/**
+ * Creates a new image object
+ */
+function andromeda_slideshow_new_image() {
+  $image = new stdClass;
+  
+  return $image;
+}
+
+/**
+ * Saves an image to the database
+ *
+ * @param $image
+ * the image object
+ */
+function andromeda_slideshow_save_image($image) {
+  $fields = array(
+    'fid' => $image->fid,
+    'title' => $image->title,
+    'caption' => $image->caption,
+    'settings' => drupal_json_encode($image->settings),
+  );
+  
+  if (empty($image->siid)) {
+    $siid = db_insert('slideshows_images')
+      ->fields($fields)
+      ->execute();
+  }
+  else {
+    $siid = db_update('slideshows_images')
+     ->fields($fields)
+     ->condition('siid', $image->siid)
+     ->execute(); 
+  }
+  
+  if ($siid) {
+    $image->siid = $siid;  
+  }
+  
+  return $image;
+}
+
+/**
+ * Loads an image by its $siid
+ *
+ * @param $siid
+ *  The image siid
+ */
+function andromeda_slideshow_image_load($siid) {
+  $image = andromeda_slideshow_load_images(array($siid));
+  
+  return (isset($image[$siid])) ? $image[$siid] : '';
+}
+
+/**
+ * Loads multiple images by their $siids
+ */
+function andromeda_slideshow_load_images($siids = array()) {
+  $images = array();
+  
+  $query = db_select('slideshows_images', 'si');
+  $query->join('file_managed', 'f', 'si.fid = f.fid');
+  
+  $query->addField('si', 'siid');
+  $query->addField('si', 'fid');
+  $query->addField('f', 'uri');
+  $query->addField('si', 'title');
+  $query->addField('si', 'caption');
+  $query->addField('si', 'settings');
+  
+  if (sizeof($siids)) {
+  $query
+    ->condition('si.siid', $siids, 'IN');
+  }
+    
+  $images = $query
+    ->execute()
+    ->fetchAllAssoc('siid');
+    
+  foreach ($images as $index => $image) {
+    $images[$index]->settings = drupal_json_decode($image->settings);
+  }
+  
+  return $images;
+}
+
+/**
+ * Loads the images for a slideshow
+ *
+ * @param $sid
+ *  the slideshow sid
+ */
+function andromeda_slideshow_load_slideshow_images($sid) {
+  $images = array();
+  
+  $query = db_select('slideshows_images', 'si');
+  $query->join('slideshows_index', 's', 'si.siid = s.siid');
+  $query->join('file_managed', 'f', 'si.fid = f.fid');
+  
+  $query->addField('si', 'siid');
+  $query->addField('si', 'fid');
+  $query->addField('f', 'uri');
+  $query->addField('si', 'title');
+  $query->addField('s', 'position');
+  $query->addField('si', 'caption');
+  $query->addField('si', 'settings');
+  
+  $images = $query
+    ->orderBy('s.position')
+    ->condition('s.sid', $sid)
+    ->execute()
+    ->fetchAllAssoc('siid');
+  
+  foreach ($images as $index => $image) {
+    $images[$index]->settings = drupal_json_decode($image->settings);
+  }
+  
+  return $images;
+}
+
+/**
+ * Adds an image to a slideshow
+ *
+ * @param $slideshow
+ *  the slideshow object
+ *
+ * @param $image
+ *  the image object
+ */
+function andromeda_slideshow_add_image($slideshow, $image) {
+  if (!empty($slideshow->sid) && !empty($image->siid)) {
+    $fields = array(
+      'sid' => $slideshow->sid,
+      'siid' => $image->siid,
+      'position' => $image->position,
+    );
+    
+    $query = db_insert('slideshows_index')
+      ->fields($fields)
+      ->execute();
+  }
+}
+
+/**
+ * Deletes an image from the database
+ *
+ * @param $image
+ *  the image object
+ */
+function andromeda_slideshow_delete_image($image) {
+  //delete the entry in the slideshow_images table
+  $result = db_delete('slideshows_images')
+    ->condition('siid', $image->siid)
+    ->execute();
+    
+  //delete the entry in the file_managed table
+  if ($result) {
+    $file = file_load($image->fid);
+    file_usage_delete($file, 'andromeda_slideshow', NULL, $image->siid, 0);
+    if (file_delete($file)) {
+      return TRUE;
+    }
+  }
+  
+  return FALSE;
+}
+
+/**
+ * Removes an image from a slideshow
+ *
+ * @param $slideshow
+ *  the slideshow object
+ *
+ * @param $image
+ *  the image object
+ */
+function andromeda_slideshow_remove_image($slideshow, $image) {
+  $result = db_delete('slideshows_index')
+    ->condition('sid', $slideshow->sid)
+    ->condition('siid', $image->siid)
+    ->execute();
+    
+  return $result;
+}
+
+/**
+ * Reorders images in a slideshow
+ *
+ * @param $slideshow
+ *  the slideshow object
+ *
+ * @param $images
+ *  Images array value pairs array($siid => array('position' => $position))
+ */
+function andromeda_slideshow_reorder_slideshow($slideshow, $images) {
+  $update = TRUE;
+  
+  foreach ($images as $siid => $values) {
+    $fields = array(
+      'position' => $values['position'],
+    );
+    
+    $query = db_update('slideshows_index')
+      ->fields($fields)
+      ->condition('sid', $slideshow->sid)
+      ->condition('siid', $siid)
+      ->execute();
+    
+    if (!$query) {
+      $update = FALSE;
+    }
+  }
+  
+  return $update;
+}
+
+/**
+ * Gets availables slideshow types
+ */
+function andromeda_slideshow_get_types() {
+  $types = array();
+  foreach (module_implements('andromeda_slideshow_info') as $module) {
+    $type = module_invoke($module, 'andromeda_slideshow_info');
+    $type[key($type)]['module'] = $module; //add module information
+    $types = array_merge($types, $type);
+  }
+  
+  return $types;
+}
+
+/** 
+ * Loads a slideshow type by the type name
+ */
+function andromeda_slideshow_load_type($type) {
+  $types = andromeda_slideshow_get_types();
+  
+  return (isset($types[$type])) ? $types[$type] : '';
+}
+
+/**
+ * Builds a slideshow type by its name
+ *
+ * This function prepares a type's js and css files to be attached later to the block
+ */
+function andromeda_slideshow_build_type($type) {
+  $type = andromeda_slideshow_load_type($type);
+  if ($type) {
+    $module_path = drupal_get_path('module', $type['module']);
+    $libraries = andromeda_slideshow_type_load_libraries($type);
+    
+    $scripts = array();
+    $styles = array();
+    
+    //load libraries js and css files
+    foreach ($libraries as $library) {
+      foreach ($library['css'] as $css) {
+        $styles[] = $css;
+      }
+      
+      foreach ($library['js'] as $js) {
+        $scripts[] = $js;
+      }
+    }
+    
+    //load type js and css files
+    if (isset($type['js']) && sizeof($type['js'])) {
+      foreach ($type['js'] as $js) {
+        if (file_exists($module_path . '/' . $js)) {
+          $scripts[] = $module_path . '/' . $js;
+        }
+      }
+    }
+    
+    if (isset($type['css']) && sizeof($type['css'])) {
+      foreach ($type['css'] as $css) {
+        if (file_exists($module_path . '/' . $css)) {
+          $styles[] = $module_path . '/' . $css;
+        }
+      }
+    }
+    
+    $type['styles'] = $styles;
+    $type['scripts'] = $scripts;
+    
+    return $type;
+  }
+  return FALSE;
+}
+
+/**
+ * Loads libraries for a slideshow type
+ */
+function andromeda_slideshow_type_load_libraries($type) {
+  $libraries = array();
+  
+  if (isset($type['libraries']) && sizeof($type['libraries'])) {
+    $libraries = $type['libraries'];
+    $missing = FALSE;
+    foreach ($libraries as $name => $library) {
+      $path = libraries_get_path($name);
+      
+      if ($path) {
+        if (isset($library['css']) && sizeof($library['css'])) {
+          //check and add library path to css files
+          foreach ($library['css'] as $i => $css) {
+            if (file_exists($path . '/' . $css)) {
+              $library['css'][$i] = $path . '/' . $css;
+            }
+            else {
+              $missing = TRUE;
+            }
+          }
+        }
+        
+        if (isset($library['js']) && sizeof($library['js'])) {
+          //add library path to js files
+          foreach ($library['js'] as $j => $js) {
+            if (file_exists($path . '/' . $js)) {
+              $library['js'][$j] = $path . '/' . $js;
+            }
+            else {
+              $missing = TRUE;
+            }
+          }
+        }
+      }
+      
+      if (!$missing) {
+        $libraries[$name] = $library;
+      }
+      else {
+        drupal_set_message(t('The @name library is missing. Please download it and place it under sites/all/libraries.', array('@name' => $name)), 'error'); 
+      }
+    }
+  }
+  
+  return $libraries;
+}
+
+/**
+ * Implements hook_image_default_styles().
+ */
+function andromeda_slideshow_image_default_styles() {
+  $styles = array();
+
+  // Exported image style: andromeda_slideshow_image
+  $styles['andromeda_slideshow_thumb'] = array(
+    'name' => 'andromeda_slideshow_thumb',
+    'effects' => array(
+      2 => array(
+        'label' => 'Scale and crop',
+        'help' => 'Scale and crop will maintain the aspect-ratio of the original image, then crop the larger dimension. This is most useful for creating perfectly square thumbnails without stretching the image.',
+        'effect callback' => 'image_scale_and_crop_effect',
+        'form callback' => 'image_resize_form',
+        'summary theme' => 'image_resize_summary',
+        'module' => 'image',
+        'name' => 'image_scale_and_crop',
+        'data' => array(
+          'width' => '50',
+          'height' => '50',
+        ),
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  return $styles;
+}

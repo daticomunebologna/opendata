@@ -1,0 +1,77 @@
+<?php
+
+/**
+ * @file
+ * Provides functions for translation provider nativy.com.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function tmgmt_nativy_menu() {
+  // @todo menu callback for order complete callback
+  $items['nativy/callback'] = array(
+    'title' => 'Nativy Notification',
+    'description' => 'Callback for the completion notification of a translation job.',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'tmgmt_nativy_process_callback',
+    'access callback' => TRUE,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_tmgmt_translator_plugin_info().
+ */
+function tmgmt_nativy_tmgmt_translator_plugin_info() {
+  return array(
+    'nativy' => array(
+      'label' => t('Nativy translator'),
+      'description' => t('Nativy translator plugin that returns translations from nativy.com.'),
+      'plugin controller class' => 'TMGMTNativyTranslatorPluginController',
+      'ui controller class' => 'TMGMTNativyTranslatorUIController',
+    ),
+  );
+}
+
+/**
+ * Callback page.
+ *
+ * @TODO Real processing. For now we just log whatever comes in.
+ */
+function tmgmt_nativy_process_callback() {
+  $items[] = t('Checking for your translation from Nativy.');
+  watchdog('nativy', 'Callback REQUEST.  <br /><pre>!post</pre>', array('!post' => print_r($_REQUEST, TRUE)));
+  // Get the order id
+  if (isset($_REQUEST['orderid'])) {
+    $orderid = $_REQUEST['orderid'];
+    $items[] = t('Your order id is @orderid', array('@orderid' => $orderid));
+    // @todo tmgmt_job_load_multiple() doesn't seem to work for this.
+    if ($jobs = entity_load('tmgmt_job', FALSE, array('reference' => $orderid))) {
+      $job = reset($jobs);
+      $controller = $job->getTranslatorController();
+      if (!is_a($controller, 'TMGMTNativyTranslatorController')) {
+        $items[] = t('The job was not assigned to Nativy.');
+      }
+      elseif ($controller->retrieveTranslation($job)) {
+        $items[] = t('Your translation has been retrieved successfully.');
+        drupal_set_message(t('Retrieved translation for job @jobid.', array('@jobid' => $job->tjid)));
+      }
+      else {
+        drupal_set_message(t('We cannot retrieve your translation.'), 'warning');
+      }
+
+    }
+    else {
+      drupal_set_message(t('Cannot find a translation job matching that order id'), 'warning');
+    }
+  }
+  else {
+    drupal_set_message(t('We cannot find your order id.'), 'error');
+  }
+  $build['steps'] = array(
+    '#theme' => 'item_list',
+    '#items' => $items,
+  );
+  return $build;
+}

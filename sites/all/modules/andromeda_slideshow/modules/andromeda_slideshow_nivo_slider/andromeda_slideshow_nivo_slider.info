@@ -1,0 +1,9 @@
+name = Andromeda Slideshow : Nivo Slider
+description = Integrates Nivo Slider with Andromeda Slideshow
+core = 7.x
+; Information added by drupal.org packaging script on 2012-02-07
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "andromeda_slideshow"
+datestamp = "1328573013"
+

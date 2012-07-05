@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * @file
+ * Integrates Nivo Slider with Andromeda Slideshow
+ */
+
+/**
+ * Implements hook_andromeda_slideshow_info().
+ */
+function andromeda_slideshow_nivo_slider_andromeda_slideshow_info() {
+  return array(
+    'nivo_slider' => array(
+      'name' => t('Nivo Slider'),
+      'template' => 'nivo-slider',
+      'libraries' => array(
+        'nivo-slider' => array(
+          'js' => array(
+            'jquery.nivo.slider.js',
+          ),
+          'css' => array(
+            'nivo-slider.css',
+          ),
+        ),
+      ),
+      'js' => array(
+        'andromeda_slideshow_nivo_slider.js',
+      ),
+      'css' => array(
+        'andromeda_slideshow_nivo_slider.css',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_preprocess_andromeda_slideshow_nivo_slider()
+ */
+function andromeda_slideshow_nivo_slider_preprocess_andromeda_slideshow_nivo_slider(&$variables) {
+  //alter the images before they are rendered here.
+}

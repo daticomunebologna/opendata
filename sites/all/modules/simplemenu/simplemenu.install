@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ * SimpleMenu module installation file.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplemenu_uninstall() {
+  // Get rid of the variables used by simple menu.
+  variable_del('simplemenu_cache_menu');
+  variable_del('simplemenu_css_error');
+  variable_del('simplemenu_css_filename');
+  variable_del('simplemenu_detect_popup');
+  variable_del('simplemenu_dropdown_zindex');
+  variable_del('simplemenu_effect');
+  variable_del('simplemenu_effect_speed');
+  variable_del('simplemenu_element');
+  variable_del('simplemenu_element_method');
+  variable_del('simplemenu_exclusions');
+  variable_del('simplemenu_fix');
+  variable_del('simplemenu_hide_delay');
+  variable_del('simplemenu_menu');
+  variable_del('simplemenu_menu_scope');
+  variable_del('simplemenu_menubar_zindex');
+  variable_del('simplemenu_running');
+  variable_del('simplemenu_superfish_version');
+  variable_del('simplemenu_theme');
+  variable_del('simplemenu_uid1');
+  variable_del('simplemenu_visibility_operator');
+  variable_del('simplemenu_visibility_pages');
+}
