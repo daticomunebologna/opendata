@@ -1,0 +1,53 @@
+*	{
+	float:none;
+	position:static;
+}
+
+body	{
+	font: 12pt Georgia, 'Times new Roman';
+	width:165mm;
+	line-height:1.6em;
+}
+
+
+.block-nice-menus, .language-switcher-locale-session, #footer, #search-block-form, #sidebar, ul.inline, ul.links.inline, .translation_en, .pane-node-comment-form, 
+.breadcrumb, ul.pager, .views-exposed-widgets, .print-link 	{
+	display:none;
+}
+
+
+#content	{
+
+	width:90%;
+	float:none;
+
+}
+
+
+#site-name	{
+font-size:16pt;
+}
+
+
+h1#page-title	{
+font-size:14pt;
+}
+
+
+h2.field-content	{
+font-size:13pt;
+}
+
+.views-field h3	{
+font-size:12pt;
+}
+
+
+.field-content img	{
+display:none;
+}
+
+
+a	{
+color:#000 !important;
+}

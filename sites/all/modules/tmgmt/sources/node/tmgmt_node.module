@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * @file
+ * Source plugin for the Translation Management system that handles nodes.
+ */
+
+/**
+ * Implements hook_tmgmt_source_plugin_info().
+ */
+function tmgmt_node_tmgmt_source_plugin_info() {
+  $info['node'] = array(
+    'label' => t('Node'),
+    'description' => t('Source handler for nodes.'),
+    'plugin controller class' => 'TMGMTNodeSourcePluginController',
+    'ui controller class' => 'TMGMTNodeSourceUIController',
+    'views controller class' => 'TMGMTNodeSourceViewsController',
+    'item types' => array(),
+  );
+  foreach (node_type_get_names() as $type => $name) {
+    if (translation_supported_type($type)) {
+      $info['node']['item types'][$type] = $name;
+    }
+  }
+  return $info;
+}
+
+/**
+ * Updates a node translation.
+ *
+ * @param $node
+ *   The translated node object (the target).
+ * @param $data
+ *   An array with the structured translated data.
+ * @param $language
+ *   The target language.
+ *
+ * @see TMGMTNodeSourcePluginController::getData()
+ */
+function tmgmt_node_update_node_translation($node, $data, $language) {
+  // Special case for the node title.
+  if (isset($data['node_title']['#translation']['#text'])) {
+    $node->title = $data['node_title']['#translation']['#text'];
+    unset($data['node_title']);
+  }
+  tmgmt_field_populate_entity($node, $language, $data);
+  // Reset translation field, which determines outdated status.
+  $node->translation['status'] = 0;
+  node_save($node);
+}

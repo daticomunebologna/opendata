@@ -1,0 +1,14 @@
+name = elFinder File Field Source
+description = File Field Sources elFinder connector
+package = User interface
+core = 7.x
+
+dependencies[] = filefield_sources
+dependencies[] = elfinder
+
+; Information added by drupal.org packaging script on 2012-01-22
+version = "7.x-0.7"
+core = "7.x"
+project = "elfinder"
+datestamp = "1327272650"
+

@@ -1,0 +1,34 @@
+name = Translation Management Core
+description = Core functionality for the Translation Management Suite.
+package = Translation Management
+core = 7.x
+
+dependencies[] = entity
+dependencies[] = locale
+dependencies[] = views
+
+files[] = includes/tmgmt.exception.inc
+files[] = includes/tmgmt.controller.inc
+files[] = includes/tmgmt.entity.inc
+files[] = includes/tmgmt.plugin.inc
+files[] = includes/tmgmt.ui.inc
+files[] = includes/tmgmt.info.inc
+files[] = tmgmt.test
+
+; Views integration and handlers
+files[] = views/tmgmt.views.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_entity_label.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_job_operations.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_progress.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_wordcount.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_message_message.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_job_item_operations.inc
+files[] = views/handlers/tmgmt_handler_field_tmgmt_job_item_count.inc
+files[] = views/plugins/tmgmt_views_job_access.inc
+
+; Information added by drupal.org packaging script on 2012-07-17
+version = "7.x-1.0-alpha2"
+core = "7.x"
+project = "tmgmt"
+datestamp = "1342531041"
+

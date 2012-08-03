@@ -1,0 +1,224 @@
+/**
+ * @file
+ * Menu and Navigation styling
+ */
+#main-menu 
+{
+ font-family: SansationLight;
+ height: 100px;
+ line-height: 100px;
+ margin-left: 500px;
+ overflow: hidden;
+ width: 440px;
+}
+
+.logo-on-right #main-menu 
+{
+ float: left;
+ margin: 0;
+}
+
+.with-slogan #main-menu 
+{
+ height: 120px;
+ line-height: 120px;
+}
+
+#main-menu ul.links 
+{
+ float: right;
+}
+
+.logo-on-right #main-menu ul.links 
+{
+ float: left;
+}
+
+#main-menu ul.links 
+{
+ overflow: hidden;
+ margin: 0;
+ padding: 0;
+}
+
+#main-menu ul.links li 
+{
+ float: left;
+ margin-top: 0;
+ margin-right: 0;
+ margin-bottom: 0;
+ margin-left: 25px;
+ list-style: none outside none;
+}
+
+.logo-on-right #main-menu ul.links li 
+{
+ margin-top: 0;
+ margin-right: 25px;
+ margin-bottom: 0;
+ margin-left: 0;
+}
+
+#main-menu ul.links li a 
+{
+ color: #C0C0C0;
+ text-decoration: none;
+ font-size: 14px;
+}
+
+#main-menu ul.links li.active-trail a 
+{
+ color: #FFF;
+}
+
+#main-menu ul.links li a.active 
+{
+ color: #fff;
+}
+
+#main-menu ul.links li a:hover 
+{
+ text-decoration: underline;
+}
+
+/**
+ * Nice menus support
+ */
+.block-nice-menus 
+{
+ float: right;
+}
+
+.logo-on-right .block-nice-menus 
+{
+ float: left;
+}
+
+.block-nice-menus h2.block-title 
+{
+ display: none;
+}
+
+ul.nice-menu 
+{
+ border-width: medium;
+ border-style: none;
+ font-family: SansationLight;
+ height: 40px;/*  margin: 30px 0;*/
+
+ margin-top: 30px;
+ margin-right: 90px;
+ margin-bottom: 30px;
+ margin-left: 0;
+ z-index: 1000;
+}
+
+ul.nice-menu li 
+{
+ margin-top: 0;
+ margin-right: 0;
+ margin-bottom: 0;
+ margin-left: 6px;
+ border-style: none;
+ background: none;
+ list-style: none outside none;
+}
+
+.logo-on-right ul.nice-menu li 
+{
+ margin-top: 0;
+ margin-right: 15px;
+ margin-bottom: 0;
+ margin-left: 0;
+ list-style: none outside none;
+}
+
+ul.nice-menu li a 
+{
+ color: #C0C0C0;
+ text-decoration: none;
+ font-size: 1.2em;
+ display: block;
+ height: 30px;
+ line-height: 30px;
+ padding-top: 5px ! important;
+ padding-right: 10px ! important;
+ padding-bottom: 5px ! important;
+ padding-left: 10px ! important;
+ margin: 0;
+ border-radius: 5px;
+}
+
+ul.nice-menu li a:hover, ul.nice-menu li.over a 
+{
+ background-color: #111;
+}
+
+ul.nice-menu li.menuparent 
+{
+ background: none ! important;
+ list-style: none outside none;
+}
+
+ul.nice-menu li.menuparent ul 
+{
+ border-style: none;
+ background-color: #111;
+ margin-top: 14px;
+ border-radius: 0 5px 5px 5px;
+ padding-top: 0;
+ padding-right: 0;
+ padding-bottom: 10px;
+ padding-left: 0;
+}
+
+ul.nice-menu li.menuparent ul li 
+{
+ padding: 0;
+ margin: 0;
+ background-color: transparent;
+ background-image: url("../images/double-line.gif");
+ background-repeat: repeat-x;
+ background-attachment: scroll;
+ background-position: center bottom;
+ list-style: none outside none;
+}
+
+ul.nice-menu li.over ul li a 
+{
+ background-color: #111;
+ padding-top: 3px ! important;
+ padding-right: 10px ! important;
+ padding-bottom: 3px ! important;
+ padding-left: 10px ! important;
+}
+
+ul.nice-menu li.active-trail a 
+{
+ color: #FFFFFF;
+}
+
+ul.nice-menu li.active-trail ul li a 
+{
+ color: #C0C0C0;
+}
+
+ul.nice-menu li.active-trail ul li a.active 
+{
+ color: #FFFFFF;
+}
+
+ul.nice-menu li.over ul li a 
+{
+ text-decoration: none;
+ padding-top: 0;
+ padding-right: 10px;
+ padding-bottom: 0;
+ padding-left: 10px;
+ background-image: none;
+}
+
+ul.nice-menu li.over ul li a:hover 
+{
+ text-decoration: underline;
+}

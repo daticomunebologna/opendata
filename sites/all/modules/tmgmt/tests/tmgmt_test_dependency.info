@@ -1,0 +1,13 @@
+name = Translation Management Test Dependencies
+package = Translation Management
+core = 7.x
+hidden = TRUE
+dependencies[] = tmgmt
+dependencies[] = rules
+
+; Information added by drupal.org packaging script on 2012-07-17
+version = "7.x-1.0-alpha2"
+core = "7.x"
+project = "tmgmt"
+datestamp = "1342531041"
+

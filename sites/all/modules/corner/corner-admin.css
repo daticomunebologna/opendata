@@ -1,0 +1,6 @@
+.corner-admin-list tr.enabled {
+  background: #DDFFDD none repeat scroll 0 0;
+}
+.corner-admin-list tr.disabled {
+  background: #FFFFDD none repeat scroll 0 0;
+}

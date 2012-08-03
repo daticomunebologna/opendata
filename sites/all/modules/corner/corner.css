@@ -1,0 +1,27 @@
+.corner {
+  z-index: 10;  
+}
+.corner-absolute {
+  position: absolute;
+}
+.corner-fixed {
+  position: fixed;
+}
+
+.corner-top-left ,
+.corner-top-right {
+  top: 0;
+}
+.corner-bottom-left ,
+.corner-bottom-right {
+  bottom: 0;
+}
+
+.corner-top-left,
+.corner-bottom-left {
+  left: 0;
+}
+.corner-top-right,
+.corner-bottom-right {
+  right: 0;
+}
