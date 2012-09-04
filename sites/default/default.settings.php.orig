@@ -177,7 +177,25 @@
  *   );
  * @endcode
  */
+<<<<<<< HEAD:sites/default/default.settings.php.orig
 $databases = array();
+=======
+$databases = array (
+  'default' => 
+  array (
+    'default' => 
+    array (
+      'database' => 'opendata_produzione',
+      'username' => 'root',
+      'password' => 'root',
+      'host' => 'localhost',
+      'port' => '',
+      'driver' => 'mysql',
+      'prefix' => 'od',
+    ),
+  ),
+);
+>>>>>>> test:sites/default/settings.php
 
 /**
  * Access control for update.php script.
@@ -231,7 +249,11 @@ $drupal_hash_salt = '';
  * It is not allowed to have a trailing slash; Drupal will add it
  * for you.
  */
+<<<<<<< HEAD:sites/default/default.settings.php.orig
 # $base_url = 'http://www.example.com';  // NO trailing slash!
+=======
+$base_url = 'http://localhost/opendata_github';  // NO trailing slash!
+>>>>>>> test:sites/default/settings.php
 
 /**
  * PHP settings:
@@ -507,3 +529,30 @@ $conf['404_fast_html'] = '<html xmlns="http://www.w3.org/1999/xhtml"><head><titl
  * Remove the leading hash signs to disable.
  */
 # $conf['allow_authorize_operations'] = FALSE;
+<<<<<<< HEAD:sites/default/default.settings.php.orig
+=======
+
+ini_set('memory_limit', '512M');
+
+
+/**
+ * External access proxy settings:
+ *
+ * If your site must access the Internet via a web proxy then you can enter
+ * the proxy settings here. Currently only basic authentication is supported
+ * by using the username and password variables. The proxy_user_agent variable
+ * can be set to NULL for proxies that require no User-Agent header or to a
+ * non-empty string for proxies that limit requests to a specific agent. The
+ * proxy_exceptions variable is an array of host names to be accessed directly,
+ * not via proxy.
+ 
+$conf['proxy_server'] = '172.24.132.35';
+$conf['proxy_port'] = 8080;
+$conf['proxy_username'] = '';
+$conf['proxy_password'] = '';
+$conf['proxy_user_agent'] = '';
+# $conf['proxy_exceptions'] = array('127.0.0.1', 'localhost');
+*/
+
+$conf['maintenance_mode'] = FALSE;
+>>>>>>> test:sites/default/settings.php
